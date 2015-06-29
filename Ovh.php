@@ -2,8 +2,9 @@
 class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract
 {
     public $config = array(
-        'apikey'   => null,
-        'password' => null
+        'nic'   => null,
+        'password' => null,
+        'testMode' => null
     );
 
     public function __construct($options)
@@ -12,9 +13,9 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract
             throw new Registrar_Exception('CURL extension is not enabled');
         }
 
-        if(isset($options['apikey']) && !empty($options['apikey'])) {
-            $this->config['apikey'] = $options['apikey'];
-            unset($options['apikey']);
+        if(isset($options['nic']) && !empty($options['nic'])) {
+            $this->config['nic'] = $options['nic'];
+            unset($options['nic']);
         } else {
             throw new Registrar_Exception('Domain registrar "Ovh" is not configured properly. Please update configuration parameter "Ovh API key" at "Configuration -> Domain registration".');
         }
@@ -25,6 +26,13 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract
         } else {
             throw new Registrar_Exception('Domain registrar "Ovh" is not configured properly. Please update configuration parameter "Ovh API password" at "Configuration -> Domain registration".');
         }
+
+        if(isset($options['testMode']) && !empty($options['testMode'])) {
+            $this->config['testMode'] = $options['testMode'];
+            unset($options['testMode']);
+        } else {
+            throw new Registrar_Exception('Domain registrar "Ovh" is not configured properly. Please update configuration parameter "Ovh API password" at "Configuration -> Domain registration".');
+        }
     }
 
     public static function getConfig()
@@ -32,15 +40,20 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract
         return array(
             'label' => 'Manages domains on Ovh via API',
             'form'  => array(
-                'apikey' => array('text', array(
-                            'label' => 'Ovh API key',
-                            'description'=>'Ovh API key',
+                'nic' => array('text', array(
+                            'label' => 'Ovh Nic',
+                            'description'=>'Ovh account Nic/ID',
                     ),
                  ),
                 'password' => array('password', array(
-                            'label' => 'Ovh API password',
-                            'description'=>'Ovh API password',
+                            'label' => 'Ovh password',
+                            'description'=>'Ovh manager account or SOAPI password',
                             'renderPassword' => true,
+                    ),
+                  ),
+                'testMode' => array('yesno', array(
+                            'label' => 'Test Mode',
+                            'description'=> 'enable the TEST MODE when enabled (true), will not debit your account',
                     ),
                  ),
             ),
@@ -328,7 +341,7 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract
 	private function _process($command, $params)
     {
         // Set authentication params
-        $params['apikey'] = $this->config['apikey'];
+        $params['nic'] = $this->config['nic'];
         $params['password'] = $this->config['password'];
 
 		$ch = curl_init();
