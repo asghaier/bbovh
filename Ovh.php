@@ -72,8 +72,8 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
     );
   }
   public function isDomainAvailable(Registrar_Domain $domain) {
-    // TODO : implement SOAPi
-    return TRUE;
+    $this->_login();
+    return $this->config['soap']->domainCheck($this->config['session'], $domain->getName())[0];
   }
   public function isDomainCanBeTransfered(Registrar_Domain $domain) {
     throw new Registrar_Exception('Domain transfer checking is not implemented');
@@ -151,9 +151,9 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
     throw new Registrar_Exception('Registrar does not support domain removal.');
   }
   public function registerDomain(Registrar_Domain $domain) {
-    $this->_soap();
-    $this->_login();
-    // TODO : check domain availability
+    if (!isDomainAvailable($domain)) {
+      return FALSE;
+    }
     // TODO : create nic handle for owner, admin, tech and billing
     $ns1 = "";
     $ns2 = "";
@@ -455,18 +455,24 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
         $this->config['soap'] = new SoapClient("https://www.ovh.com/soapi/soapi-re-1.63.wsdl");
       } catch(SoapFault $fault) {
         throw new Registrar_Exception('SOAPI Initialization error: \n' . $fault);
+        return FALSE;
       }
     }
+    return TRUE;
   }
   private function _login() {
-    $this->_soap();
+    if(!$this->_soap()) {
+      return FALSE;
+    }
     if (!$this->config['session']) {
       try {
         $this->config['session'] = $this->config['soap']->login($this->config['nic'],$this->config['password'],"en", false);
       } catch(SoapFault $fault) {
         throw new Registrar_Exception('Session Initialization error: \n' . $fault);
+        return FALSE;
       }
     }
+    return TRUE;
   }
   private function _logout($session) {
     if ($this->config['session']) {
@@ -474,8 +480,10 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
         $this->config['soap']->logout($session);
       } catch(SoapFault $fault) {
         throw new Registrar_Exception('Session Termination error: \n' . $fault);
+        return FALSE;
       }
       $this->config['session'] = null;
     }
+    return TRUE;
   }
 }
