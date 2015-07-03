@@ -72,11 +72,8 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
     );
   }
   public function isDomainAvailable(Registrar_Domain $domain) {
-    $params = array(
-      'domain' => $domain->getName()
-    );
-    $result = $this->_process('/Domain/Check', $params);
-    return ($result['status'] == 'AVAILABLE');
+    // TODO : implement SOAPi
+    return TRUE;
   }
   public function isDomainCanBeTransfered(Registrar_Domain $domain) {
     throw new Registrar_Exception('Domain transfer checking is not implemented');
