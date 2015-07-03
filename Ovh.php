@@ -154,14 +154,20 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
     throw new Registrar_Exception('Registrar does not support domain removal.');
   }
   public function registerDomain(Registrar_Domain $domain) {
-    _soap();
-    _login();
+    $this->_soap();
+    $this->_login();
     // TODO : check domain availability
     // TODO : create nic handle for owner, admin, tech and billing
-    $ns1 = $domain->getNs1();
-    $ns2 = $domain->getNs1();
+    $ns1 = "";
+    $ns2 = "";
     $ns3 = "";
     $ns4 = "";
+    if($domain->getNs1())  {
+      $ns1 = $domain->getNs1();
+    }
+    if($domain->getNs2())  {
+      $ns2 = $domain->getNs2();
+    }
     if($domain->getNs3())  {
       $ns3 = $domain->getNs3();
     }
@@ -197,8 +203,9 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
       );
     } catch(SoapFault $fault) {
       throw new Registrar_Exception('Session Termination error: \n' . $fault);
+      return FALSE;
     }
-    _logout();
+    return TRUE;
     /*$c = $domain->getContactRegistrar();
     $params = array(
       'domain' => $domain->getName(),
@@ -455,7 +462,7 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
     }
   }
   private function _login() {
-    _soap();
+    $this->_soap();
     if (!$this->config['session']) {
       try {
         $this->config['session'] = $this->config['soap']->login($this->config['nic'],$this->config['password'],"en", false);
