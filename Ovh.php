@@ -1,7 +1,9 @@
 <?php
 class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
   public $config = array(
-    'nic'   => null,
+    'soap' => null,
+    'session' => null,
+    'nic' => null,
     'password' => null,
     'testMode' => null
   );
@@ -152,7 +154,52 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
     throw new Registrar_Exception('Registrar does not support domain removal.');
   }
   public function registerDomain(Registrar_Domain $domain) {
-    $c = $domain->getContactRegistrar();
+    _soap();
+    _login();
+    // TODO : check domain availability
+    // TODO : create nic handle for owner, admin, tech and billing
+    $ns1 = $domain->getNs1();
+    $ns2 = $domain->getNs1();
+    $ns3 = "";
+    $ns4 = "";
+    if($domain->getNs3())  {
+      $ns3 = $domain->getNs3();
+    }
+    if($domain->getNs4())  {
+      $ns4 = $domain->getNs4();
+    }
+    try {
+      $this->config['soap']->resellerDomainCreate(
+        $this->config['session'],
+        $domain->getName(),
+        "none",
+        "gold",
+        "whiteLabel",
+        "yes",
+        $this->config['nic'],
+        $this->config['nic'],
+        $this->config['nic'],
+        $this->config['nic'],
+        $ns1,
+        $ns2,
+        $ns3,
+        $ns4,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        true
+      );
+    } catch(SoapFault $fault) {
+      throw new Registrar_Exception('Session Termination error: \n' . $fault);
+    }
+    _logout();
+    /*$c = $domain->getContactRegistrar();
     $params = array(
       'domain' => $domain->getName(),
       'period' => $domain->getRegistrationPeriod() . 'Y'
@@ -222,7 +269,7 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
     }
     $result = $this->_process('/Domain/Create', $params);
     return (($result['product_0_status'] == 'PENDING')
-      || ($result['product_0_status'] == 'SUCCESS'));
+      || ($result['product_0_status'] == 'SUCCESS'));*/
   }
   public function renewDomain(Registrar_Domain $domain) {
     $params = array(
@@ -397,5 +444,34 @@ class Registrar_Adapter_Ovh extends Registrar_AdapterAbstract {
     return (($result['status'] == 'SUCCESS')
       && (($result['privatewhoisstatus'] == 'FULL')
       || ($result['privatewhoisstatus'] == 'PARTIAL')));
+  }
+  private function _soap() {
+    if (!$this->config['soap']) {
+      try {
+        $this->config['soap'] = new SoapClient("https://www.ovh.com/soapi/soapi-re-1.63.wsdl");
+      } catch(SoapFault $fault) {
+        throw new Registrar_Exception('SOAPI Initialization error: \n' . $fault);
+      }
+    }
+  }
+  private function _login() {
+    _soap();
+    if (!$this->config['session']) {
+      try {
+        $this->config['session'] = $this->config['soap']->login($this->config['nic'],$this->config['password'],"en", false);
+      } catch(SoapFault $fault) {
+        throw new Registrar_Exception('Session Initialization error: \n' . $fault);
+      }
+    }
+  }
+  private function _logout($session) {
+    if ($this->config['session']) {
+      try {
+        $this->config['soap']->logout($session);
+      } catch(SoapFault $fault) {
+        throw new Registrar_Exception('Session Termination error: \n' . $fault);
+      }
+      $this->config['session'] = null;
+    }
   }
 }
